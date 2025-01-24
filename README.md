@@ -25,7 +25,7 @@ struct Person {
 };
 
 const Person homer{
-  first_name = "Homer",
+  .first_name = "Homer",
   .last_name = "Simpson",
   .age = 45
 };
@@ -33,4 +33,41 @@ const Person homer{
 // We can now write into and read from a JSON string.
 const std::string json_string{ rfl::nlohmann::write(homer) };
 auto homer2{ rfl::nlohmann::read<Person>(json_string).value() };
+```
+
+
+### __*Additional*__
+
+`reflect-cpp` offers to hide parsing backend, which is great! But sometimes it just
+necessary to use raw json from server to patch/diff changes. So, for those purposes the `rfl::nlohmann::to_json` was made:
+
+```cpp
+#include <rfl/nlohmann/write.hpp> // or just <rfl/nlohmann.hpp>
+
+const nlohmann::json json{ rfl::nlohmann::to_json(homer) };
+```
+
+That could give huge possibilities like:
+
+```cpp
+namespace traits {
+
+template<class T>
+concept aggregate_class = std::is_class_v<T> && std::is_aggregate_v<T>;
+
+} // namespace traits
+
+template<class ...Processors>
+[[nodiscard]] auto difference(
+  const traits::aggregate_class auto &lhv,
+  const traits::aggregate_class auto &rhv
+) -> nlohmann::json {
+  if (&lhv != &rhv) {
+    return nlohmann::json::diff(
+      rfl::nlohmann::to_json<Processors...>(lhv),
+      rfl::nlohmann::to_json<Processors...>(rhv)
+    );
+  }
+  return nlohmann::json{};
+}
 ```
